@@ -21,3 +21,5 @@
 ## Todo List
 
 - DONE player 変数は hash-table で管理する。
+
+## パネル、パネルルーティング

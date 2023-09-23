@@ -2,29 +2,58 @@
   (:use :cl))
 (in-package :rpg)
 
-・空マス：特に何もないマス
-・再生成マス：マップを再生性する。これは後ほど階層移動マスと変更するかも。1エリアにつき必ず一つだけ生成する。
-・ショップマス：アイテムを購入できる
-・戦闘マス：戦闘が始まる
-・能力マス：能力が変わる
-・ランダムマス：何が起こるかわからないマス。内容としてはランダムマス以外の種類のマスを生成時点でランダムに生成する。
-・体力マス：体力が増減する
-・お金マス：お金が増減する
-
-(defconstant +panel-empty+ 0)
-(defconstant +panel-regenerate+ 1)
-(defconstant +panel-shop+ 2)
-(defconstant +panel-battle+ 3)
-(defconstant +panel-status+ 4)
-(defconstant +panel-random+ 5)
-(defconstant +panel-hp+ 6)
-(defconstant +panel-money+ 7)
-
-
-(defparameter *player-hp* 100)
-(defparameter *player-money* 50)
-(defparameter *player-items* '())
 (defparameter *area* '())
 
-(defun generate-panel ()
+(defparameter *player* (make-hash-table))
+(setf (gethash 'hp *player*) 100)
+(setf (gethash 'money *player*) 50)
+(setf (gethash 'items *player*) '())
+(setf (gethash 'str *player*) 1)
+(setf (gethash 'def *player*) 1)
+(setf (gethash 'agi *player*) 1)
+
+(defparameter *panel-list*
+  '(shop battle status random hp money))
+
+(defun panel-to-str-one (p)
+  (cond ((eq p 'shop) "s")
+	((eq p 'battle) "b")
+	((eq p 'status) "t")
+	((eq p 'random) "r")
+	((eq p 'hp) "h")
+	((eq p 'money) "m")
+	(t "?")
+	)
+  )
+
+(defun interleave-with (lst elem)
+  (cdr (reverse
+	(reduce #'(lambda (a b)
+		    (cons b (cons elem a)))
+		lst
+		:initial-value '())))
+  )
+
+(defun range (max &key (min 0) (step 1))
+  (loop for n from min below max by step
+	collect n))
+
+(defun print-player-status ()
+  (maphash #'(lambda (k v)
+	       (format t "~A: ~A~%" k v))
+	   *player*))
+
+(defun next-panel-list (n)
+  (let ((panel-list '()))
+    (loop for v = (nth (random (length *panel-list*)) *panel-list*)
+	    then (nth (random (length *panel-list*)) *panel-list*)
+	  while (< (length panel-list) n)
+	  do (cond ((eq v 'random)
+		    (push v panel-list))
+		   ((not (find v panel-list))
+		    (push v panel-list))
+		   )
+	  )
+    panel-list
+    )
   )
