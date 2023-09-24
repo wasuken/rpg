@@ -12,7 +12,7 @@
 (setf (gethash 'def *player*) 1)
 (setf (gethash 'agi *player*) 1)
 
-;; アイテムごとの増減管理
+;; アイテム,statusごとの増減管理
 (defparameter *approp-table* (make-hash-table))
 (setf (gethash 'hp *approp-table*) '(0 . 10))
 (setf (gethash 'money *approp-table*) '(-1000 . 1000))
@@ -20,40 +20,20 @@
 (setf (gethash 'def *approp-table*) '(-10 . 10))
 (setf (gethash 'agi *approp-table*) '(-10 . 10))
 
+;; shopでえらべるアイテムリスト
 (defparameter *item-table* (make-hash-table))
-(setf (gethash 'red-posion *item-table*) '(amount . 100 description . "HP is healed 100 times."))
-(setf (gethash 'blue-posion *item-table*) '(amount . 100 description . "HP is healed 200 times."))
-(setf (gethash 'sword *item-table*) '(amount . 1000 description . "STR is healed 1 times."))
-(setf (gethash 'shield *item-table*) '(amount . 1000 description . "DEF is healed 1 times."))
-(setf (gethash 'shoes *item-table*) '(amount . 1000 description . "AGI is healed 1 times."))
+(setf (gethash 'red-posion *item-table*) '((amount . 100) (description . "HP is healed 100 times.")))
+(setf (gethash 'blue-posion *item-table*) '((amount . 100) (description . "HP is healed 200 times.")))
+(setf (gethash 'sword *item-table*) '((amount . 1000) (description . "STR is healed 1 times.")))
+(setf (gethash 'shield *item-table*) '((amount . 1000) (description . "DEF is healed 1 times.")))
+(setf (gethash 'shoes *item-table*) '((amount . 1000) (description . "AGI is healed 1 times.")))
 
+;; パネルの種類リスト
 (defparameter *panel-list*
   '(shop battle status random hp money))
 
-(defparameter *panel-event-list*
-  '(shop battle status random hp money))
-
-(defun set-panel-event ()
-  (mapcar #'(lambda (p) `(,p . ,(generate-event p))) *panel-list*))
-
-(defun rand-panel ()
-  (nth (random (length *panel-list*)) *panel-list*))
-
-(defun rise-and-fall (panel)
-  (let ((v-range (gethash panel *approp-table*)))
-    (setf (gethash panel *player*)
-	  (+ (random (- (cdr v-range) (car v-range) -1)) (car v-range)))
-    )
-  )
-
-(defun battle ())
-
-(defun shop ()
-  (format t "welcome!~% ~{~A~}"
-	  (mapcar #'(lambda (item) (format nil "" (car item) (cdr item)))))
-  )
-
-(defun generate-event (panel)
+;;panel eventを実行する
+(defun panel-event (panel)
   (cond ((or (eq panel 'status) (eq panel 'hp) (eq panel 'money))
 	 (setf (gethash panel *player*)
 	       (+ (gethash panel *player*) (rise-and-fall p)))
@@ -64,7 +44,20 @@
 	 (battle))
 	((eq panel 'random)
 	 (generate-event (rand-panel)))
-	))
+	)
+  )
+
+;; ランダムにパネルを生成する
+(defun rand-panel ()
+  (nth (random (length *panel-list*)) *panel-list*))
+
+;; プロパティごとの増減をきめて、そのままグローバル変数に設定する
+(defun rise-and-fall (panel)
+  (let ((v-range (gethash panel *approp-table*)))
+    (setf (gethash panel *player*)
+	  (+ (random (- (cdr v-range) (car v-range) -1)) (car v-range)))
+    )
+  )
 
 (defun interleave-with (lst elem)
   (cdr (reverse
@@ -95,4 +88,35 @@
 	  )
     panel-list
     )
+  )
+
+
+;; battle
+(defun battle ())
+
+;; shop
+(defun shop ()
+  (format t "welcome!~% ~{~A~}"
+	  (mapcar #'(lambda (item) (format nil "" (car item) (cdr item)))))
+  )
+
+(defun main-loop ()
+  (let ((cont t)
+	(user-input -1)
+	(choose-panel nil)
+	(next-panels '()))
+    (loop while cont do
+      (progn
+	;; choose
+	(setf next-panels (next-panel-list 3))
+	(loop for p in next-panels for i from 1 do (format t "~A: ~A" i p))
+	;; event
+	(princ "choose panel number:")
+	(setf user-input (parse-integer (read)))
+	(setf choose-panel (nth user-input next-panels))
+
+	)
+	  )
+    )
+
   )
