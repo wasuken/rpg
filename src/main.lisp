@@ -2,8 +2,6 @@
   (:use :cl))
 (in-package :rpg)
 
-(defparameter *area* '())
-
 (defparameter *player* (make-hash-table))
 (setf (gethash 'hp *player*) 100)
 (setf (gethash 'money *player*) 50)
@@ -34,16 +32,22 @@
 
 ;;panel eventを実行する
 (defun panel-event (panel)
-  (cond ((or (eq panel 'status) (eq panel 'hp) (eq panel 'money))
+  (cond ((or  (eq panel 'hp) (eq panel 'money))
 	 (setf (gethash panel *player*)
-	       (+ (gethash panel *player*) (rise-and-fall p)))
+	       (+ (gethash panel *player*) (rise-and-fall panel)))
+	 )
+	((eq panel 'status)
+	 ;; 3つ共に変動させる
+	 (rise-and-fall 'str)
+	 (rise-and-fall 'def)
+	 (rise-and-fall 'agi)
 	 )
 	((eq panel 'shop)
 	 (shop))
 	((eq panel 'battle)
 	 (battle))
 	((eq panel 'random)
-	 (generate-event (rand-panel)))
+	 (panel-event (rand-panel)))
 	)
   )
 
@@ -92,10 +96,14 @@
 
 
 ;; battle
-(defun battle ())
+(defun battle ()
+  (print "battle!")
+  (print "cresating...")
+  )
 
 ;; shop
 (defun shop ()
+  (print "creating...")
   (format t "welcome!~% ~{~A~}"
 	  (mapcar #'(lambda (item) (format nil "" (car item) (cdr item)))))
   )
@@ -109,14 +117,25 @@
       (progn
 	;; choose
 	(setf next-panels (next-panel-list 3))
-	(loop for p in next-panels for i from 1 do (format t "~A: ~A" i p))
+	(format t "==== Player Status ====~%~%")
+	(print-player-status)
+	(format t "==== Next Choices ====~%~%")
+	(loop for p in next-panels for i from 0 do (format t "~A: ~A~%" i p))
+	(format t "q: Quit~%~%input: ")
 	;; event
-	(princ "choose panel number:")
-	(setf user-input (parse-integer (read)))
-	(setf choose-panel (nth user-input next-panels))
+	(setf user-input (read))
+	;; (print "choose panel number:")
+	(cond ((eq user-input 'q)
+	       (print "quit")
+	       (setf cont nil))
+	      (t
+	       (setf choose-panel (nth user-input next-panels))
+	       (panel-event choose-panel)
+	       ;; (print choose-panel))
+	       )
+	      )
 
 	)
 	  )
     )
-
   )
