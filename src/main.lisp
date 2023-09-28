@@ -94,6 +94,28 @@
     )
   )
 
+;; random fluctuation in status(hp)
+;; end game if hp is zero
+(defun simple-battle ()
+  (setf (gethash 'hp *player*) (- (gethash 'hp *player*) (random 11)))
+  )
+
+;; random selection of items
+;; determine if an item can be purchased
+(defun simple-shopping ()
+  (let* ((item-names (maphash #'(lambda (k v) k) *item-table*))
+	 (item-name (nth (random (length item-names)) item-names))
+	 (item-alist (gethash item-name *item-table*))
+	 (item-amount (cdr (assoc 'amount item-alist)))
+	 (player-money (gethash 'money *player*)))
+    (if (>= player-money item-amount)
+	(progn
+	  (setf (gethash 'money *player*) (- player-money item-amount))
+	  (format t "buy: ~A..~A~%" item-name (assoc 'description item-alist)))
+	(format t "few money, failed shopping...~%")
+	)
+    )
+  )
 
 ;; battle
 (defun battle ()
