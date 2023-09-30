@@ -1,30 +1,48 @@
 (defpackage rpg
-  (:use :cl))
+  (:use :cl)
+  (:export :main-loop))
 (in-package :rpg)
 
 (defparameter *player* (make-hash-table))
-(setf (gethash 'hp *player*) 100)
-(setf (gethash 'money *player*) 50)
-(setf (gethash 'items *player*) '())
-(setf (gethash 'str *player*) 1)
-(setf (gethash 'def *player*) 1)
-(setf (gethash 'agi *player*) 1)
+(defun init-player ()
+  (setf *player* (make-hash-table))
+  (setf (gethash 'hp *player*) 100)
+  (setf (gethash 'money *player*) 50)
+  (setf (gethash 'items *player*) '())
+  (setf (gethash 'str *player*) 1)
+  (setf (gethash 'def *player*) 1)
+  (setf (gethash 'agi *player*) 1))
 
 ;; アイテム,statusごとの増減管理
 (defparameter *approp-table* (make-hash-table))
-(setf (gethash 'hp *approp-table*) '(0 . 10))
-(setf (gethash 'money *approp-table*) '(-1000 . 1000))
-(setf (gethash 'str *approp-table*) '(-10 . 10))
-(setf (gethash 'def *approp-table*) '(-10 . 10))
-(setf (gethash 'agi *approp-table*) '(-10 . 10))
+(defun init-approp ()
+  (setf *approp-table* (make-hash-table))
+  (setf (gethash 'hp *approp-table*) '(0 . 10))
+  (setf (gethash 'money *approp-table*) '(-1000 . 1000))
+  (setf (gethash 'str *approp-table*) '(-10 . 10))
+  (setf (gethash 'def *approp-table*) '(-10 . 10))
+  (setf (gethash 'agi *approp-table*) '(-10 . 10)))
 
 ;; shopでえらべるアイテムリスト
 (defparameter *item-table* (make-hash-table))
-(setf (gethash 'red-posion *item-table*) '((amount . 100) (description . "HP is healed 100 times.")))
-(setf (gethash 'blue-posion *item-table*) '((amount . 100) (description . "HP is healed 200 times.")))
-(setf (gethash 'sword *item-table*) '((amount . 1000) (description . "STR is healed 1 times.")))
-(setf (gethash 'shield *item-table*) '((amount . 1000) (description . "DEF is healed 1 times.")))
-(setf (gethash 'shoes *item-table*) '((amount . 1000) (description . "AGI is healed 1 times.")))
+(defparameter *item-table-keys* '())
+(defun init-item ()
+  (setf *item-table* (make-hash-table))
+  (setf *item-table-keys* '())
+  (setf (gethash 'red-posion *item-table*) '((amount . 100) (description . "HP is healed 100 times.")))
+  (setf (gethash 'blue-posion *item-table*) '((amount . 100) (description . "HP is healed 200 times.")))
+  (setf (gethash 'sword *item-table*) '((amount . 1000) (description . "STR is healed 1 times.")))
+  (setf (gethash 'shield *item-table*) '((amount . 1000) (description . "DEF is healed 1 times.")))
+  (setf (gethash 'shoes *item-table*) '((amount . 1000) (description . "AGI is healed 1 times.")))
+  (maphash #'(lambda (k v) (push k *item-table-keys*)) *item-table*)
+  )
+
+(defun all-init ()
+  (init-player)
+  (init-approp)
+  (init-item)
+  )
+
 
 ;; パネルの種類リスト
 (defparameter *panel-list*
@@ -43,9 +61,13 @@
 	 (rise-and-fall 'agi)
 	 )
 	((eq panel 'shop)
-	 (shop))
+	 ;; (shop)
+	 (simple-shop)
+	 )
 	((eq panel 'battle)
-	 (battle))
+	 ;; (battle)
+	 (simple-battle)
+	 )
 	((eq panel 'random)
 	 (panel-event (rand-panel)))
 	)
@@ -94,17 +116,31 @@
     )
   )
 
+;; minus allways zero
+(defmacro minus-init-zero (&rest args)
+  (let ((rst `(- ,@args)))
+    `(if (> ,rst -1)
+	 ,rst
+	 0)
+    )
+  )
+
 ;; random fluctuation in status(hp)
 ;; end game if hp is zero
 (defun simple-battle ()
-  (setf (gethash 'hp *player*) (- (gethash 'hp *player*) (random 11)))
+  (let* ((enemy-damage (+ (random 5) (random 5))) ; atk(tentative) + base(tentative)
+	 (player-anti-damage (gethash 'def *player*))
+	 (damage (- enemy-damage player-anti-damage))
+	 (updated-hp (- (gethash 'hp *player*) damage)))
+    (setf (gethash 'hp *player*) updated-hp)
+    )
   )
 
 ;; random selection of items
 ;; determine if an item can be purchased
-(defun simple-shopping ()
-  (let* ((item-names (maphash #'(lambda (k v) k) *item-table*))
-	 (item-name (nth (random (length item-names)) item-names))
+(defun simple-shop ()
+  (let* ((item-names *item-table-keys*)
+	 (item-name (nth (random (length item-names)) *item-table-keys*))
 	 (item-alist (gethash item-name *item-table*))
 	 (item-amount (cdr (assoc 'amount item-alist)))
 	 (player-money (gethash 'money *player*)))
@@ -135,6 +171,7 @@
 	(user-input -1)
 	(choose-panel nil)
 	(next-panels '()))
+    (all-init)
     (loop while cont do
       (progn
 	;; choose
@@ -156,7 +193,7 @@
 	       ;; (print choose-panel))
 	       )
 	      )
-
+	(format t "~c[2J" #\Escape)
 	)
 	  )
     )
