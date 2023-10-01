@@ -15,6 +15,7 @@
 
 ;; アイテム,statusごとの増減管理
 (defparameter *approp-table* (make-hash-table))
+
 (defun init-approp ()
   (setf *approp-table* (make-hash-table))
   (setf (gethash 'hp *approp-table*) '(0 . 10))
@@ -166,12 +167,22 @@
 	  (mapcar #'(lambda (item) (format nil "" (car item) (cdr item)))))
   )
 
+(defmacro message-process (var)
+  `(when (> (length ,var) 0)
+    (format t "==== ~A ====~%" ,(symbol-name var))
+    (format t "~%~A~%" ,var)
+    (setf ,var "")
+    )
+  )
+
 (defun main-loop ()
   (let ((cont t)
 	(user-input -1)
 	(choose-panel nil)
 	(next-panels (next-panel-list 3))
-	(message ""))
+	(warning-message "")
+	(info-message "")
+	)
     (all-init)
     (loop while cont do
       (progn
@@ -181,11 +192,9 @@
 	(format t "~%==== Next Choices ====~%~%")
 	(loop for p in next-panels for i from 0 do (format t "~A: ~A~%" i p))
 	(format t "q: Quit~%")
-	(when (> (length message) 0)
-	  (format t "~%==== Messages ====~%~%")
-	  (format t "~%~A~%" message)
-	  (setf message "")
-	  )
+	(format t "~%==== Messages ====~%~%")
+	(message-process warning-message)
+	(message-process info-message)
 	(format t "~%input: ")
 	;; event
 	(setf user-input (read))
@@ -202,7 +211,7 @@
 			)
 		      )
 		     (t
-		      (setf message "no panel number."))
+		      (setf warning-message "no panel number."))
 		     )
 	       ;; (print choose-panel))
 	       )
@@ -212,7 +221,7 @@
 	       (sb-ext:quit)
 	       )
 
-	      (t (setf message "ignore input."))
+	      (t (setf warning-message "ignore input."))
 	      )
 	(format t "~c[2J" #\Escape)
 	)
